@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Authentication data (IMPORTANT - Never commit this!)
+auth_info/
+*.session
+
+# Logs
+*.log
+logs/
+
+# Environment variables
+.env
+.env.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
