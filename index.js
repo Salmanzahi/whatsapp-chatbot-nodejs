@@ -7,14 +7,11 @@ import makeWASocket, {
 import { Boom } from "@hapi/boom";
 import pino from "pino";
 import qrcode from "qrcode-terminal";
-import axios from "axios";
-import express from "express";
 
-// Import handlers
 import { handleMessages } from "./handlers/messageHandler.js";
 import { handleGroupEvents } from "./handlers/groupHandler.js";
 
-const logger = pino({ level: "silent" }); // Set to 'debug' for detailed logs
+const logger = pino({ level: "silent" });
 
 async function startBot() {
   const { state, saveCreds } = await useMultiFileAuthState("auth_info");
@@ -33,7 +30,6 @@ async function startBot() {
   });
 
   // Handle QR code
-
   sock.ev.on("connection.update", async (update) => {
     const { connection, lastDisconnect, qr } = update;
 
@@ -86,6 +82,7 @@ async function startBot() {
     } else if (connection === "open") {
       console.log("✅ Bot connected successfully!");
       console.log("🤖 Bot is now online and ready to receive messages");
+      console.log("🧠 AI Service: Local (No Bridge)");
     }
   });
 
@@ -107,6 +104,9 @@ async function startBot() {
 
 // Start the bot
 console.log("🚀 Starting WhatsApp Bot...\n");
+console.log("📦 AI System: Native JavaScript (ChromaDB + OpenRouter)");
+console.log("🔌 Bridge: Disabled\n");
+
 startBot().catch((err) => {
   console.error("❌ Error starting bot:", err);
   process.exit(1);
@@ -116,50 +116,4 @@ startBot().catch((err) => {
 process.on("SIGINT", () => {
   console.log("\n👋 Bot shutting down...");
   process.exit(0);
-});
-
-const app = express();
-app.use(express.json());
-
-app.post("/gateway", async (req, res) => {
-  const inputuser = req.body.message;
-  const modeSelection = req.body.modeSelection || 1;
-
-  try {
-    console.log(`[NodeJS] Meneruskan ke Python: ${inputuser}`);
-    console.log(`[NodeJS] Mode Selection: ${modeSelection}`);
-
-    const respond = await axios.post("http://localhost:8000/gateway", {
-      inputUser: inputuser,
-      modeSelection: modeSelection,
-    });
-
-    console.log("[NodeJS] Respon dari Python diterima!");
-
-    // Check if Python returned an error
-    if (respond.data.error) {
-      console.error("[NodeJS] Python returned error:", respond.data);
-      res.status(500).json(respond.data);
-    } else {
-      res.json(respond.data);
-    }
-  } catch (error) {
-    console.error("[NodeJS] Error:", error.message);
-
-    // Check if error response contains Python error details
-    if (error.response && error.response.data) {
-      res.status(500).json(error.response.data);
-    } else {
-      res.status(500).json({
-        error: true,
-        error_type: "ConnectionError",
-        error_message: "Failed to connect to Python server",
-        detail: error.message,
-      });
-    }
-  }
-});
-
-app.listen(3000, () => {
-  console.log("✓ Node.js Bridge aktif di http://localhost:3000");
 });

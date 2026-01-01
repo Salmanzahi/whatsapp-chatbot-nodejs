@@ -1,3 +1,11 @@
+/**
+ * @deprecated This file is no longer used.
+ * The AI system has been migrated to native JavaScript services.
+ * See: services/chatbotService.js
+ *
+ * This file is kept for reference only.
+ */
+
 import axios from "axios";
 
 /**

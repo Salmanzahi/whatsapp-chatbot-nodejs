@@ -1,5 +1,6 @@
-// Command to handle AI respond to bridge system
-import { sendToBridge } from "../triggertest.js";
+// Command to handle AI respond - Direct service (no bridge)
+import { getChatbotService } from "../services/chatbotService.js";
+
 const VALID_MODES = [1, 2, 3, 4, 5, 6];
 
 /**
@@ -96,18 +97,17 @@ function parseKnowledgeCommand(args) {
   metadata.added_at = new Date().toISOString();
   metadata.source = "whatsapp";
 
-  // Build content payload for Python backend
-  // Format: JSON string with text and metadata
+  // Build content payload
   const payload = {
     text: knowledgeText,
     metadata: metadata,
   };
-  console.log("[DEBUG] Payload:", payload);
+
   return {
     isValid: true,
     mode: 3,
     content: JSON.stringify(payload),
-    metadata: metadata, // Keep for display purposes
+    metadata: metadata,
     knowledgeText: knowledgeText,
   };
 }
@@ -120,7 +120,6 @@ function parseKnowledgeCommand(args) {
 function parseArguments(args) {
   const DEFAULT_MODE = 2;
 
-  // return if args length == 0
   if (args.length === 0) {
     return {
       isValid: false,
@@ -137,7 +136,6 @@ function parseArguments(args) {
     };
   }
 
-  // Check if first arg is valid mode
   const firstArg = args[0];
 
   // Handle knowledge management commands
@@ -159,17 +157,17 @@ function parseArguments(args) {
           "Format: !ai delete-knowledge <doc_id>\n\n" +
           "Contoh: !ai delete-knowledge abc123",
       };
-    } else if (firstArg == "clear-conversation") {
-      return {
-        isValid: true,
-        mode: 6,
-        content: args.slice(1).join(" ").trim(),
-      };
     }
     return {
       isValid: true,
       mode: 5,
       content: docId,
+    };
+  } else if (firstArg === "clear-conversation") {
+    return {
+      isValid: true,
+      mode: 6,
+      content: "",
     };
   }
 
@@ -196,7 +194,6 @@ function parseArguments(args) {
     content = args.join(" ").trim();
   }
 
-  // return isValid, mode selection, and user content message
   return {
     isValid: true,
     mode,
@@ -217,7 +214,7 @@ export default {
   aliases: ["ai", "ask"],
   description: "Talk with Sixteen AI (Enhanced with RAG system)",
   usage:
-    "!ai <mode> <pesan>\n\nMode:\n1 = Standard Chat\n2 = RAG Enhanced\n3 = Creative Mode",
+    "!ai <mode> <pesan>\n\nMode:\n1 = Standard Chat\n2 = RAG Enhanced\n3 = Add Knowledge\n4 = List Knowledge\n5 = Delete Knowledge\n6 = Clear Conversation",
 
   async execute(sock, msg, args, context) {
     const start = Date.now();
@@ -235,33 +232,36 @@ export default {
     try {
       await sock.sendPresenceUpdate("composing", context.from);
 
-      // Show different processing message for add-knowledge
-      const processingMsg =
-        mode === 3 ? "📝 Adding knowledge to database..." : "Processing...";
+      // Show different processing message based on mode
+      const processingMessages = {
+        1: "🤖 Processing with AI...",
+        2: "🧠 Processing with RAG-enhanced AI...",
+        3: "📝 Adding knowledge to database...",
+        4: "📋 Fetching knowledge list...",
+        5: "🗑️ Deleting knowledge...",
+        6: "🧹 Clearing conversation history...",
+      };
 
       await sock.sendMessage(context.from, {
-        text: processingMsg,
+        text: processingMessages[mode] || "Processing...",
       });
 
-      const response = await sendToBridge(content, mode);
-      await sock.sendPresenceUpdate("paused", context.from);
+      // Get chatbot service and process request directly (no bridge!)
+      const chatbot = getChatbotService();
+      const response = await chatbot.processRequest(content, mode);
 
-      if (!response) {
-        // Handle error dari bridge
-        await sock.sendMessage(context.from, {
-          text: "Failed to connect to bridge system",
-        });
-        return;
-      }
+      await sock.sendPresenceUpdate("paused", context.from);
 
       // Check if response contains error
       if (response.error) {
-        let errorMessage = `❌ PYTHON ERROR DETECTED\n\n`;
+        let errorMessage = `❌ AI SERVICE ERROR\n\n`;
         errorMessage += `🔴 Error Type: ${response.error_type}\n`;
         errorMessage += `📝 Message: ${response.error_message}\n`;
 
         if (response.traceback) {
-          errorMessage += `\n📋 Traceback:\n${response.traceback}`;
+          // Truncate traceback for WhatsApp
+          const shortTraceback = response.traceback.slice(0, 500);
+          errorMessage += `\n📋 Traceback:\n${shortTraceback}`;
         }
 
         await sock.sendMessage(context.from, {
@@ -269,7 +269,7 @@ export default {
         });
 
         console.error(
-          `[PYTHON ERROR] Type: ${response.error_type}, Message: ${response.error_message}`
+          `[AI ERROR] Type: ${response.error_type}, Message: ${response.error_message}`
         );
         return;
       }
@@ -280,24 +280,24 @@ export default {
 
       if (mode === 3 && parsed.metadata) {
         // Special formatting for add-knowledge success
-        formattedResponse = `Knowledge berhasil ditambahkan!\n\n`;
-        formattedResponse += `Content: ${parsed.knowledgeText}\n\n`;
-        formattedResponse += `Metadata:\n`;
+        formattedResponse = `✅ Knowledge berhasil ditambahkan!\n\n`;
+        formattedResponse += `📖 Content: ${parsed.knowledgeText}\n\n`;
+        formattedResponse += `📋 Metadata:\n`;
 
         if (parsed.metadata.role) {
-          formattedResponse += `Role: ${parsed.metadata.role}\n`;
+          formattedResponse += `   • Role: ${parsed.metadata.role}\n`;
         }
         if (parsed.metadata.context) {
-          formattedResponse += `Context: ${parsed.metadata.context}\n`;
+          formattedResponse += `   • Context: ${parsed.metadata.context}\n`;
         }
-        formattedResponse += `Source: ${parsed.metadata.source}\n`;
-        formattedResponse += `Added: ${new Date(
+        formattedResponse += `   • Source: ${parsed.metadata.source}\n`;
+        formattedResponse += `   • Added: ${new Date(
           parsed.metadata.added_at
         ).toLocaleString("id-ID")}\n`;
 
-        // Add document ID from response if available
+        // Add document ID from response
         if (response.doc_id || response.document_id) {
-          formattedResponse += `\nDocument ID: ${
+          formattedResponse += `\n🔑 Document ID: ${
             response.doc_id || response.document_id
           }`;
         }
@@ -317,7 +317,9 @@ export default {
       console.error("Error in AI command:", error);
 
       await sock.sendMessage(context.from, {
-        text: `❌ JAVASCRIPT ERROR:\n${error.message}\n\nStack:\n${error.stack}`,
+        text: `❌ JAVASCRIPT ERROR:\n${
+          error.message
+        }\n\nStack:\n${error.stack?.slice(0, 500)}`,
       });
     }
   },
