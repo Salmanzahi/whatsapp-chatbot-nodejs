@@ -1,5 +1,5 @@
 import { commands } from "../commands/index.js";
-
+import { prefix } from "../config.js";
 const DEBUG_MODE = true;
 
 export async function handleMessages(sock, m) {
@@ -44,7 +44,7 @@ export async function handleMessages(sock, m) {
         : `📨 [Grup Id: ${groupName}, Sender Name:${msg.pushName}, ID Sender:${sender}] Pesan: "${messageText}"`
     );
 
-    if (messageText.startsWith("!")) {
+    if (messageText.startsWith(prefix)) {
       // Parse command
       const args = messageText.slice(1).trim().split(/ +/);
       const commandName = args.shift().toLowerCase();
@@ -54,10 +54,12 @@ export async function handleMessages(sock, m) {
       );
 
       if (command) {
-        console.log(`⚡ Executing command: !${commandName}`);
+        console.log(`⚡ Executing command: ${prefix}${commandName}`);
         if (DEBUG_MODE) {
           console.log(
-            `\n[DEBUG] Command: !${commandName}\nArgs: ${JSON.stringify(args)}`
+            `\n[DEBUG] Command: ${prefix}${commandName}\nArgs: ${JSON.stringify(
+              args
+            )}`
           );
           console.log(`FROM  ${JSON.stringify(from)}`);
           console.log(`SENDER  ${JSON.stringify(sender)}`);
