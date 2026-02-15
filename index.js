@@ -16,11 +16,11 @@ import { handleGroupEvents } from "./handlers/groupHandler.js";
 
 const logger = pino({ level: "silent" });
 const execAsync = promisify(exec);
-
+//kntl
 async function startBot() {
   const { state, saveCreds } = await useMultiFileAuthState("auth_info");
   const { version } = await fetchLatestBaileysVersion();
-
+  //saya mau makan
   const sock = makeWASocket({
     version,
     logger,
