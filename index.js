@@ -21,7 +21,7 @@ async function startBot() {
     version,
     logger,
     printQRInTerminal: false,
-    auth: {
+    auth: {           
       creds: state.creds,
       keys: makeCacheableSignalKeyStore(state.keys, logger),
     },

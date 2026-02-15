@@ -30,7 +30,7 @@ export function parseCommandArgs(args, schema) {
   if (args.length < requiredCount) {
     result.isValid = false;
     result.errors.push(
-      `Minimal ${requiredCount} argumen diperlukan, diberikan ${args.length}`
+      `Minimal ${requiredCount} argumen diperlukan, diberikan ${args.length}`,
     );
     return result;
   }
@@ -60,7 +60,7 @@ export function parseCommandArgs(args, schema) {
     if (param.validate && !param.validate(value)) {
       result.isValid = false;
       result.errors.push(
-        param.errorMessage || `Parameter '${param.name}' tidak valid`
+        param.errorMessage || `Parameter '${param.name}' tidak valid`,
       );
       return;
     }
@@ -69,7 +69,7 @@ export function parseCommandArgs(args, schema) {
     if (param.minLength && value.length < param.minLength) {
       result.isValid = false;
       result.errors.push(
-        `Parameter '${param.name}' minimal ${param.minLength} karakter`
+        `Parameter '${param.name}' minimal ${param.minLength} karakter`,
       );
       return;
     }
@@ -227,7 +227,7 @@ class RateLimiter {
 
     // Filter request yang masih dalam window
     const validRequests = userRequests.filter(
-      (timestamp) => now - timestamp < this.windowMs
+      (timestamp) => now - timestamp < this.windowMs,
     );
 
     if (validRequests.length >= this.maxRequests) {
@@ -264,15 +264,15 @@ export class CommandLogger {
 
     console.log(
       `${emoji} [${timestamp}] Command: ${commandName} | User: ${userId} | Args: ${JSON.stringify(
-        args
-      )} | Status: ${status}`
+        args,
+      )} | Status: ${status}`,
     );
   }
 
   static error(commandName, userId, error) {
     const timestamp = new Date().toISOString();
     console.error(
-      `❌ [${timestamp}] Command: ${commandName} | User: ${userId} | Error: ${error.message}`
+      `❌ [${timestamp}] Command: ${commandName} | User: ${userId} | Error: ${error.message}`,
     );
   }
 }

@@ -9,8 +9,6 @@ export async function handleMessages(sock, m) {
     // Ignore if no message or if it's a status update
     if (!msg.message || msg.key.remoteJid === "status@broadcast") return;
 
-    // Extract message info
-    // const messageType = Object.keys(msg.message)[0];
     const from = msg.key.remoteJid;
     const isGroup = from.endsWith("@g.us");
     const sender = msg.key.participant || msg.key.remoteJid;
@@ -41,7 +39,7 @@ export async function handleMessages(sock, m) {
             msg.pushName
           }, ID Sender:${sender}] Pesan: "${messageText}"
         \n[DEBUG] ${JSON.stringify(msg)}`
-        : `📨 [Grup Id: ${groupName}, Sender Name:${msg.pushName}, ID Sender:${sender}] Pesan: "${messageText}"`
+        : `📨 [Grup Id: ${groupName}, Sender Name:${msg.pushName}, ID Sender:${sender}] Pesan: "${messageText}"`,
     );
 
     if (messageText.startsWith(prefix)) {
@@ -50,7 +48,7 @@ export async function handleMessages(sock, m) {
       const commandName = args.shift().toLowerCase();
       // Find and execute command
       const command = commands.find(
-        (cmd) => cmd.name === commandName || cmd.aliases?.includes(commandName)
+        (cmd) => cmd.name === commandName || cmd.aliases?.includes(commandName),
       );
 
       if (command) {
@@ -58,17 +56,17 @@ export async function handleMessages(sock, m) {
         if (DEBUG_MODE) {
           console.log(
             `\n[DEBUG] Command: ${prefix}${commandName}\nArgs: ${JSON.stringify(
-              args
-            )}`
+              args,
+            )}`,
           );
-          console.log(`FROM  ${JSON.stringify(from)}`);
-          console.log(`SENDER  ${JSON.stringify(sender)}`);
+          console.log(`GROUP ID:   ${JSON.stringify(from)}`);
+          console.log(`USER ID:  ${JSON.stringify(sender)}`);
           console.log(`IS GROUP  ${JSON.stringify(isGroup)}`);
         }
         await command.execute(sock, msg, args, { from, sender, isGroup });
       }
     }
   } catch (e) {
-    console.error("❌ Error handling message:", e);
+    console.error("Error handling message:", e);
   }
 }

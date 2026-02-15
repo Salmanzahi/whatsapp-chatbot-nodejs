@@ -1,5 +1,5 @@
 // Command to handle AI respond - Direct service (no bridge)
-import { getChatbotService } from "../services/chatbotService.js";
+import { getChatbotService } from "../ai-system/chatbotService.js";
 
 const VALID_MODES = [1, 2, 3, 4, 5, 6];
 
