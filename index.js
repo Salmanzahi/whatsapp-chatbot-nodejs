@@ -7,11 +7,15 @@ import makeWASocket, {
 import { Boom } from "@hapi/boom";
 import pino from "pino";
 import qrcode from "qrcode-terminal";
+import readline from "readline";
+import { exec } from "child_process";
+import { promisify } from "util";
 
 import { handleMessages } from "./handlers/messageHandler.js";
 import { handleGroupEvents } from "./handlers/groupHandler.js";
 
 const logger = pino({ level: "silent" });
+const execAsync = promisify(exec);
 
 async function startBot() {
   const { state, saveCreds } = await useMultiFileAuthState("auth_info");
@@ -21,7 +25,7 @@ async function startBot() {
     version,
     logger,
     printQRInTerminal: false,
-    auth: {           
+    auth: {
       creds: state.creds,
       keys: makeCacheableSignalKeyStore(state.keys, logger),
     },
@@ -102,15 +106,114 @@ async function startBot() {
   return sock;
 }
 
+// Terminal interaction setup with git command support
+function setupTerminalInterface() {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+    prompt: "🤖 git> ",
+  });
+
+  console.log("\n💬 Interactive terminal enabled.");
+  console.log('   Type "git <command>" to run git commands');
+  console.log('   Type "help" for available commands\n');
+  rl.prompt();
+
+  rl.on("line", async (line) => {
+    const input = line.trim();
+    const command = input.toLowerCase();
+
+    // Handle empty input
+    if (!input) {
+      rl.prompt();
+      return;
+    }
+
+    // Built-in commands
+    if (command === "help") {
+      console.log("\n📋 Available Commands:");
+      console.log(
+        "  git <command>  - Execute any git command (e.g., git status, git log)",
+      );
+      console.log("  help           - Show this help message");
+      console.log("  clear          - Clear the console");
+      console.log("  exit           - Shutdown the bot");
+      console.log("\n💡 Examples:");
+      console.log("  git status");
+      console.log("  git log --oneline -5");
+      console.log("  git add .");
+      console.log('  git commit -m "your message"');
+      console.log("  git push\n");
+      rl.prompt();
+      return;
+    }
+
+    if (command === "clear") {
+      console.clear();
+      console.log("🚀 WhatsApp Bot - Git Interactive Terminal\n");
+      rl.prompt();
+      return;
+    }
+
+    if (command === "exit" || command === "quit") {
+      console.log("\n👋 Shutting down bot...");
+      process.exit(0);
+      return;
+    }
+
+    // Execute git commands
+    if (input.startsWith("git ")) {
+      try {
+        console.log(`\n⚙️  Executing: ${input}\n`);
+        const { stdout, stderr } = await execAsync(input, {
+          cwd: process.cwd(),
+        });
+
+        if (stdout) {
+          console.log(stdout.trim());
+        }
+        if (stderr) {
+          console.error("⚠️  ", stderr.trim());
+        }
+        console.log(); // Empty line for readability
+      } catch (error) {
+        console.error(`\n❌ Error executing git command:`);
+        console.error(error.message);
+        if (error.stderr) {
+          console.error(error.stderr);
+        }
+        console.log();
+      }
+      rl.prompt();
+      return;
+    }
+
+    // Unknown command
+    console.log(`\n❌ Unknown command: "${input}"`);
+    console.log('   Type "help" for available commands\n');
+    rl.prompt();
+  });
+
+  rl.on("close", () => {
+    console.log("\n👋 Bot shutting down...");
+    process.exit(0);
+  });
+}
+
 // Start the bot
 console.log("🚀 Starting WhatsApp Bot...\n");
 console.log("📦 AI System: Native JavaScript (ChromaDB + OpenRouter)");
 console.log("🔌 Bridge: Disabled\n");
 
-startBot().catch((err) => {
-  console.error("❌ Error starting bot:", err);
-  process.exit(1);
-});
+startBot()
+  .then(() => {
+    // Setup interactive terminal after bot starts
+    setupTerminalInterface();
+  })
+  .catch((err) => {
+    console.error("❌ Error starting bot:", err);
+    process.exit(1);
+  });
 
 // Handle process termination
 process.on("SIGINT", () => {
