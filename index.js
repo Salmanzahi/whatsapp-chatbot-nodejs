@@ -12,7 +12,7 @@ import { exec } from "child_process";
 import { promisify } from "util";
 
 import { handleMessages } from "./handlers/messageHandler.js";
-import { handleGroupEvents } from "./handlers/groupHandler.js";
+// import { handleGroupEvents } from "./handlers/groupHandler.js";
 
 const logger = pino({ level: "silent" });
 const execAsync = promisify(exec);
