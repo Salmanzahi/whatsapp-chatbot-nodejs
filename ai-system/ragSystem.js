@@ -139,7 +139,7 @@ const INCLUDE_CONVS_RAG = true;
  * and semantic search over documents and past conversations
  */
 export class RAGSystem {
-  constructor(persistDirectory = "../vector_db/localVectorStore.js") {
+  constructor(persistDirectory = "./vector_db/data") {
     this.persistDirectory = persistDirectory;
     this.documentsCollection = null;
     this.conversationsCollection = null;
